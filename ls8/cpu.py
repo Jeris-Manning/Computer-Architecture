@@ -7,7 +7,59 @@ class CPU:
 
     def __init__(self):
         """Construct a new CPU."""
-        pass
+        # 256 bytes of RAM
+
+        self.ram = [[0b00000000]] * 256
+
+        # 8 registers of 8-bits each. r[0] - r[7]
+
+        # R5 is reserved as the interrupt mask (IM)
+        # R6 is reserved as the interrupt status (IS)
+        # R7 is reserved as the stack pointer (SP)
+        self.reg = []
+        for i in range(8):
+            self.reg[i] = 0b00000000
+
+        self.reg[7] = 0xF4  #Power on state: * `R7` is set to `0xF4`.
+
+        # Internal Registers
+
+        # `PC`: Program Counter, address of the currently executing instruction
+
+        self.pc = 0x00
+
+        # `IR`: Instruction Register, contains a copy of the currently executing instruction
+
+        # ir = 0x00
+
+        # `MAR`: Memory Address Register, holds the memory address we're reading or writing
+
+        # mar = 0b00000000
+
+        # `MDR`: Memory Data Register, holds the value to write or the value just read
+
+        # mdr = 0b00000000
+
+        # `FL`: Flags
+
+        self.fl = 0x00
+
+
+    # MAR contains ADDRESS that is being READ or WRITTEN TO (Memory Address Register)
+
+    # MDR contains the DATA that WAS READ or is TO BE WRITTEN (Memory Data Register)
+
+    # MAR == ADDRESS
+
+    # MDR == DATA
+
+
+    def ram_read(self, mar): # mar = address to read from
+        mdr = self.ram[mar]
+        return mdr
+
+    def ram_write(self, mdr, mar): # mdr = data to write
+        self.ram[mar] = mdr        # mar = address where to write data
 
     def load(self):
         """Load a program into memory."""
@@ -62,4 +114,17 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        pass
+
+        ir = 0
+
+        ir = self.pc
+        operand_a = self.ram_read(self.pc + 1)
+        operand_b = self.ram_read(self.pc + 2)
+
+
+
+
+
+
+
+        print(ir, operand_a, operand_b) # THIS WAS TO SHUT THE LINTER UP
