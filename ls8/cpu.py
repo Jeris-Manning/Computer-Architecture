@@ -2,6 +2,7 @@
 
 import sys
 
+
 class CPU:
     """Main CPU class."""
 
@@ -16,7 +17,7 @@ class CPU:
         # R5 is reserved as the interrupt mask (IM)
         # R6 is reserved as the interrupt status (IS)
         # R7 is reserved as the stack pointer (SP)
-        self.reg = []
+        self.reg = [0] * 8
         for i in range(8):
             self.reg[i] = 0b00000000
 
@@ -30,15 +31,15 @@ class CPU:
 
         # `IR`: Instruction Register, contains a copy of the currently executing instruction
 
-        # ir = 0x00
 
         # `MAR`: Memory Address Register, holds the memory address we're reading or writing
 
-        # mar = 0b00000000
-
         # `MDR`: Memory Data Register, holds the value to write or the value just read
 
-        # mdr = 0b00000000
+        self.hlt = 0x01
+        self.ldi = 0x82
+        self.prn = 0x47
+        self.mul = 0xA2
 
         # `FL`: Flags
 
@@ -61,26 +62,24 @@ class CPU:
     def ram_write(self, mdr, mar): # mdr = data to write
         self.ram[mar] = mdr        # mar = address where to write data
 
-    def load(self):
+    def load(self, program):
         """Load a program into memory."""
 
         address = 0
 
-        # For now, we've just hardcoded a program:
 
-        program = [
-            # From print8.ls8
-            0b10000010, # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111, # PRN R0
-            0b00000000,
-            0b00000001, # HLT
-        ]
+        with open(program, 'rt') as ls8exe:
+            for eachline in ls8exe:
+                command = eachline.split("#")[0].strip()
+                if command != "":
+                    self.ram[address] = int(command, 2)
+                    address += 1
 
-        for instruction in program:
-            self.ram[address] = instruction
-            address += 1
+
+
+        # for instruction in goose:
+        #     self.ram[address] = instruction
+        #     address += 1
 
 
     def alu(self, op, reg_a, reg_b):
@@ -89,6 +88,12 @@ class CPU:
         if op == "ADD":
             self.reg[reg_a] += self.reg[reg_b]
         #elif op == "SUB": etc
+        elif op == "MUL":
+            self.reg[reg_a] *= self.reg[reg_b]
+
+
+
+
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -116,15 +121,47 @@ class CPU:
         """Run the CPU."""
 
         ir = 0
+        ir = self.ram_read(self.pc)
+        running = True
+        while running == True:
 
-        ir = self.pc
-        operand_a = self.ram_read(self.pc + 1)
-        operand_b = self.ram_read(self.pc + 2)
+            ir = self.ram_read(self.pc)
+            operand_a = self.ram_read(self.pc + 1)
+            operand_b = self.ram_read(self.pc + 2)
+
+            if ir == self.hlt:
+                running = False
+            else:
+                if ir == self.ldi:
+                    self.reg[operand_a] = operand_b
+                    self.pc += 3
+                elif ir == self.prn:
+                    print(self.reg[operand_a])
+                    self.pc += 2
+                elif ir == self.mul:
+                    self.alu("MUL", operand_a, operand_b)
+                    self.pc += 3
+                else:
+                    self.pc += 1
+
+    # hlt = 0x01
+    # ldi = 0x82
+    # prn = 0x47
+    # mul = 0xA2
+
+    # class Ops:
 
 
+    #     def __init__(self):
+    #         self.ops_table = {}
+    #         self.ops_table[hlt] = self.handle_hlt
+    #         self.ops_table[ldi] = self.handle_ldi
+    #         self.ops_table[prn] = 0x47
+    #         self.ops_table[mul] = 0xA2
 
+    #     def handle_hlt(self):
+    #         exit()
 
-
-
-
-        print(ir, operand_a, operand_b) # THIS WAS TO SHUT THE LINTER UP
+    #     def handle_ldi(self, operand_a, operand_b):
+    #         CPU.reg[operand_a] = operand_b
+    #         self.pc += 3
