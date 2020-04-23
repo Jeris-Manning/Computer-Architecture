@@ -21,7 +21,11 @@ class CPU:
         for i in range(8):
             self.reg[i] = 0b00000000
 
-        self.reg[7] = 0xF4  #Power on state: * `R7` is set to `0xF4`.
+        self.sp = 0xF4  # Power on state: Stack pointer is set to `0xF4`.
+
+        self.reg[7] = self.sp   # registry index 7 reserved for stack pointer
+
+
 
         # Internal Registers
 
@@ -37,9 +41,11 @@ class CPU:
         # `MDR`: Memory Data Register, holds the value to write or the value just read
 
         self.hlt = 0x01
-        self.ldi = 0x82
+        self.ldi = 0x82 # Operation values for cpu to reference. Moving to hash system soon.compute
         self.prn = 0x47
         self.mul = 0xA2
+        self.pop = 0x46
+        self.push = 0x45
 
         # `FL`: Flags
 
@@ -90,10 +96,6 @@ class CPU:
         #elif op == "SUB": etc
         elif op == "MUL":
             self.reg[reg_a] *= self.reg[reg_b]
-
-
-
-
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -120,29 +122,46 @@ class CPU:
     def run(self):
         """Run the CPU."""
 
-        ir = 0
-        ir = self.ram_read(self.pc)
-        running = True
+        # `IR`: Instruction Register, contains a copy of the currently executing instruction
+
+        ir = 0 # Resets IR to initial position before program begins to run
+
+        # `PC`: Program Counter, address of the currently executing instruction
+
+        ir = self.ram_read(self.pc) # Aligns IR with current contents of PC (This line probably unnecessary)
+        running = True # Value to monitor if program is still executing.
+                       # It starts at true and checks after executing each instruction
         while running == True:
 
             ir = self.ram_read(self.pc)
             operand_a = self.ram_read(self.pc + 1)
             operand_b = self.ram_read(self.pc + 2)
 
-            if ir == self.hlt:
+                # Pulling contents from position of program counter and the following 2 addresses
+
+            if ir == self.hlt: # When the IR hits the halt value, the loop is exited and the program stops
                 running = False
             else:
-                if ir == self.ldi:
+                if ir == self.ldi: # LDI = "Load Immediate". Fills the resgistry index specified by next line with value from the line after that to be used in later operation
                     self.reg[operand_a] = operand_b
-                    self.pc += 3
-                elif ir == self.prn:
+                    self.pc += 3 # LDI consumes 3 successive bytes, so we move the counter by 3 for next instruction
+                elif ir == self.prn: # Print the value from the registry index provided by next line
                     print(self.reg[operand_a])
-                    self.pc += 2
-                elif ir == self.mul:
+                    self.pc += 2 # Print operation consumes 2 bytes, so we move counter by 2
+                elif ir == self.mul: # Passes following two lines to the ALU to be multiplied
                     self.alu("MUL", operand_a, operand_b)
-                    self.pc += 3
+                    self.pc += 3 # Again, consumes 3 bytes, so pointer moves 3 lines
+                elif ir == self.pop:
+                    self.reg[operand_a] = self.ram_read(self.sp)
+                    self.sp += 1
+                    self.pc += 2
+                elif ir == self.push:
+                    self.sp -= 1
+                    self.ram[self.sp] = self.reg[operand_a]
+                    self.pc += 2
+
                 else:
-                    self.pc += 1
+                    self.pc += 1 # Shouldn't ever hit this, but gives the program a chance to not crash if a useless line is present
 
     # hlt = 0x01
     # ldi = 0x82
