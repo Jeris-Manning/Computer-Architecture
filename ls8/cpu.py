@@ -8,6 +8,7 @@ reg = [0] * 8
 
 sp = 7
 reg[sp] = 0xF4   # reg slot 7 is stack pointer
+flag = 0
 
 
 halt = 0x01 # Halt
@@ -15,10 +16,19 @@ ldi = 0x82 # Load Immediately
 prn = 0x47 # Print
 add = 0xA0 # Add
 mul = 0xA2 # Multiply
+cmp = 0xA7  # Compare for greater, less, equality
 pop = 0x46 # Stack Operators
 push = 0x45
 call = 0x50
 ret = 0x11 # Return (after call)
+
+# Flag-states for cmp
+# ___________
+
+flag_less_than = 0x04
+flag_greater_than = 0x02
+flag_equal = 0x01
+
 
 def alu(op, reg_a, reg_b):
         """ALU operations."""
@@ -27,6 +37,15 @@ def alu(op, reg_a, reg_b):
             reg[reg_a] += reg[reg_b]
         elif op == "MUL":
             reg[reg_a] *= reg[reg_b]
+        elif op == "CMP":
+            if reg[reg_a] > reg[reg_b]:
+                flag = flag_greater_than
+            elif reg[reg_a] < reg[reg_b]:
+                flag = flag_less_than
+            elif reg[reg_a] == reg[reg_b]:
+                flag = flag_equal
+            else:
+                print("Can't Compare")
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -123,6 +142,11 @@ while running == True:
     elif ir == mul:
         alu("MUL", memory[pc + 1], memory[pc + 2])
         pc += 3
+    elif ir == cmp:
+        alu("CMP", memory[pc + 1], memory[pc + 2])
+        pc += 3
+
+
 
 #
 # GO ALU MATHS SQUAD
