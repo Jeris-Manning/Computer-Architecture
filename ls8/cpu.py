@@ -8,6 +8,7 @@ reg = [0] * 8
 
 sp = 7
 reg[sp] = 0xF4   # reg slot 7 is stack pointer
+flag = 0
 
 
 halt = 0x01 # Halt
@@ -15,10 +16,22 @@ ldi = 0x82 # Load Immediately
 prn = 0x47 # Print
 add = 0xA0 # Add
 mul = 0xA2 # Multiply
+cmp = 0xA7  # Compare for greater, less, equality
 pop = 0x46 # Stack Operators
 push = 0x45
 call = 0x50
 ret = 0x11 # Return (after call)
+jump = 0x54 # Jump Register
+jeq = 0x55
+jne = 0x56
+
+# Flag-states for cmp
+# ___________
+
+flag_less_than = 0x04
+flag_greater_than = 0x02
+flag_equal = 0x01
+
 
 def alu(op, reg_a, reg_b):
         """ALU operations."""
@@ -27,6 +40,7 @@ def alu(op, reg_a, reg_b):
             reg[reg_a] += reg[reg_b]
         elif op == "MUL":
             reg[reg_a] *= reg[reg_b]
+
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -55,6 +69,7 @@ while running == True:
         # LDI = "Load Immediate". Fills the resgistry index specified by next line with value from the line after that to be used in later operation
 
     if ir == ldi:
+
         reg_slot = memory[pc + 1]
         val = memory[pc + 2]
         reg[reg_slot] = val
@@ -68,7 +83,7 @@ while running == True:
         reg[sp] -= 1 # Address of the top of stack minus 1 (Stack grows down)
 
         reg_slot = memory[pc + 1]
-    # 2nd line of push instruction is address of value we want to push
+        # 2nd line of push instruction is address of value we want to push
         val = reg[reg_slot]
 
         address = reg[sp] # address of new top of stack
@@ -89,6 +104,20 @@ while running == True:
 
         reg[sp] += 1 # move sp up one (new top of stack)
 
+    elif ir == jump:
+        pc = reg[memory[pc + 1]] # Move pc to address in given register
+
+    elif ir == jeq:
+
+        if flag & flag_equal == flag_equal:      # If flag is set to equal
+            pc = reg[memory[pc + 1]]             # jump to given register
+        else:
+            pc += 2
+    elif ir == jne:
+        if flag & flag_equal == 0:      # If flag is NOT set to equal
+            pc = reg[memory[pc + 1]]    # jump to give register
+        else:
+            pc += 2
     elif ir == call:
 
         return_address = pc + 2 # Address to return to after sub-routine
@@ -113,6 +142,22 @@ while running == True:
         running = False
 
 
+
+    elif ir == cmp:
+        # print("COMPARING")
+        if reg[memory[pc + 1]] > reg[memory[pc + 2]]:
+            flag = flag_greater_than
+            # print("SET FLAG GREATER", flag)
+        elif reg[memory[pc + 1]] < reg[memory[pc + 2]]:
+            flag = flag_less_than
+            # print("SET FLAG LESS", flag)
+        elif reg[memory[pc + 1]] == reg[memory[pc + 2]]:
+            flag = flag_equal
+            # print("SET FLAG EQUAL", flag)
+        else:
+            print("Can't Compare")
+        pc += 3
+
 #
 # BIG TIME ALU OPERATIONS HERE
 #
@@ -124,10 +169,6 @@ while running == True:
         alu("MUL", memory[pc + 1], memory[pc + 2])
         pc += 3
 
-#
-# GO ALU MATHS SQUAD
-#
-
     else:
-        print("I don't understand")
+        print("I don't understand", ir)
         running = False
